@@ -28,7 +28,7 @@ func (l BaseLogic) SendCode(c *gin.Context, req interface{}) (data interface{}, 
 	if err != nil {
 		return nil, tools.NewMySqlError(fmt.Errorf("通过邮箱查询用户失败" + err.Error()))
 	}
-	if user.Status != 1 {
+	if user.Status != 1 || user.SyncState != 1 {
 		return nil, tools.NewMySqlError(fmt.Errorf("该用户已离职或者未同步在ldap，无法重置密码，如有疑问，请联系管理员"))
 	}
 	err = tools.SendCode([]string{r.Mail})

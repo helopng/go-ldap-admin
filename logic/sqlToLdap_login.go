@@ -134,21 +134,33 @@ func SearchUserDiff() (err error) {
 	var sqlUserList []*model.User
 	sqlUserList, err = isql.User.ListAll()
 	if err != nil {
+		tools.NewMySqlError(fmt.Errorf("shuhaisc mysql用户获取失败：%s", err.Error()))
 		return err
 	}
 	// 获取ldap中的数据
 	var ldapUserList []*model.User
 	ldapUserList, err = ildap.User.ListUserDN()
 	if err != nil {
+		tools.NewLdapError(fmt.Errorf("shuhaisc ldap用户获取失败：%s", err.Error()))
 		return err
+	}
+	for sqlUser := range sqlUserList {
+		tools.NewMySqlError(fmt.Errorf("mysql用户遍历: %s", sqlUser))
+	}
+	for ldapUser := range ldapUserList {
+		tools.NewLdapError(fmt.Errorf("ldap用户遍历: %s", ldapUser))
 	}
 	// 比对两个系统中的数据
 	users := diffUser(sqlUserList, ldapUserList)
 	for _, user := range users {
+		fmt.Printf("UserDN: %s", user.UserDN)
+		fmt.Printf("AdminDN: %s", config.Conf.Ldap.AdminDN)
 		if user.UserDN == config.Conf.Ldap.AdminDN {
+			fmt.Println("对比用户continue")
 			continue
 		}
 		err = isql.User.ChangeSyncState(int(user.ID), 2)
+		fmt.Printf("更改State这里的信息: %s", err)
 	}
 	return
 }
