@@ -134,33 +134,32 @@ func SearchUserDiff() (err error) {
 	var sqlUserList []*model.User
 	sqlUserList, err = isql.User.ListAll()
 	if err != nil {
-		tools.NewMySqlError(fmt.Errorf("shuhaisc mysql用户获取失败：%s", err.Error()))
+		tools.NewMySqlError(fmt.Errorf("shuhaisc mysql用户获取失败：%s\n", err.Error()))
 		return err
 	}
 	// 获取ldap中的数据
 	var ldapUserList []*model.User
 	ldapUserList, err = ildap.User.ListUserDN()
 	if err != nil {
-		tools.NewLdapError(fmt.Errorf("shuhaisc ldap用户获取失败：%s", err.Error()))
+		tools.NewLdapError(fmt.Errorf("shuhaisc ldap用户获取失败：%s\n", err.Error()))
 		return err
 	}
 	for sqlUser := range sqlUserList {
-		tools.NewMySqlError(fmt.Errorf("mysql用户遍历: %s", sqlUser))
+		tools.NewMySqlError(fmt.Errorf("mysql用户遍历: %s\n", sqlUser))
 	}
 	for ldapUser := range ldapUserList {
-		tools.NewLdapError(fmt.Errorf("ldap用户遍历: %s", ldapUser))
+		tools.NewLdapError(fmt.Errorf("ldap用户遍历: %s\n", ldapUser))
 	}
 	// 比对两个系统中的数据
 	users := diffUser(sqlUserList, ldapUserList)
 	for _, user := range users {
-		fmt.Printf("UserDN: %s", user.UserDN)
-		fmt.Printf("AdminDN: %s", config.Conf.Ldap.AdminDN)
+		fmt.Printf("未同步的UserDN: %s\n", user.UserDN)
+		fmt.Printf("未同步的AdminDN: %s\n", config.Conf.Ldap.AdminDN)
 		if user.UserDN == config.Conf.Ldap.AdminDN {
-			fmt.Println("对比用户continue")
 			continue
 		}
 		err = isql.User.ChangeSyncState(int(user.ID), 2)
-		fmt.Printf("更改State这里的信息: %s", err)
+		fmt.Printf("更改State这里的信息: %s\n", err)
 	}
 	return
 }
@@ -186,10 +185,12 @@ func diffUser(sqlUser, ldapUser []*model.User) (rst []*model.User) {
 	var tmp = make(map[string]struct{}, len(sqlUser))
 
 	for _, v := range ldapUser {
+		fmt.Printf("输出ldapUser: %s, %s\n", v.UserDN, v.Username)
 		tmp[v.UserDN] = struct{}{}
 	}
 
 	for _, v := range sqlUser {
+		fmt.Printf("输出sqlUser: %s, %s\n", v.UserDN, v.Username)
 		if _, ok := tmp[v.UserDN]; !ok {
 			rst = append(rst, v)
 		}
